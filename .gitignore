@@ -1,0 +1,6 @@
+/Unity3D/Assets/StreamingAssets/**/*.meta
+/Unity3D/Temp/*
+/Unity3D/Library/*
+/**/.vs/
+/Unity3D/*.sln
+/Unity3D/*.csproj
