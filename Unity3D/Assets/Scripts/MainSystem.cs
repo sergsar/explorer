@@ -8,29 +8,54 @@ using System.Linq;
 
 public class MainSystem : ComponentSystem
 {
-    private const string extensions = "BMP,EXR,GIF,HDR,IFF,JPG,JPEG,PICT,PNG,PSD,TGA,TIFF";
+    private readonly string[] extensions = "BMP,EXR,GIF,HDR,IFF,JPG,JPEG,PICT,PNG,PSD,TGA,TIFF".Split(',');
 
-    protected override void OnStartRunning()
+    private List<string> imageFileNamesSnapshot;
+
+    private RectTransform transform;
+
+    private float interval;
+
+    private string path = string.Format("{0}/StreamingAssets", Application.dataPath);
+
+    private void Scan()
     {
-        var extensionsSplitted = extensions.Split(',');
 
-        var canvas = Object.FindObjectOfType<Canvas>();
-        var transform = canvas.GetComponent<RectTransform>();
 
-        var path = string.Format("{0}/StreamingAssets", Application.dataPath);
+
         var directories = Directory.GetDirectories(path);
-        foreach(var directory in directories)
+
+        var imageFileNames = new List<string>();
+        foreach (var directory in directories)
         {
             var name = Path.GetFileName(directory);
 
 
-            var imageFile = Directory.GetFiles(directory).Where(p => extensionsSplitted.Contains(Path.GetExtension(p).ToUpper().Replace(".", string.Empty))).FirstOrDefault();
-            if(imageFile == null)
+            var imageFile = Directory.GetFiles(directory).Where(p => extensions.Contains(Path.GetExtension(p).ToUpper().Replace(".", string.Empty))).FirstOrDefault();
+            if (imageFile == null)
             {
                 Debug.Log(Path.GetExtension(Directory.GetFiles(directory).FirstOrDefault()));
                 continue;
             }
-            var bytes = File.ReadAllBytes(imageFile);
+            imageFileNames.Add(imageFile);
+        }
+
+        if (imageFileNamesSnapshot != null && imageFileNames.SequenceEqual(imageFileNamesSnapshot))
+        {
+            return;
+        }
+        imageFileNamesSnapshot = imageFileNames;
+        Debug.Log("changed");
+
+        var objects = transform.GetComponentsInChildren<Transform>().Where(p => p != transform);
+        foreach (var obj in objects)
+        {
+            Object.Destroy(obj.gameObject);
+        }
+
+        foreach (var imageFileName in imageFileNames)
+        {
+            var bytes = File.ReadAllBytes(imageFileName);
             var texture = new Texture2D(2, 2);
             texture.LoadImage(bytes);
             var rect = new Rect(0F, 0F, texture.width, texture.height);
@@ -42,14 +67,24 @@ public class MainSystem : ComponentSystem
             image.transform.SetParent(panel);
             image.sprite = sprite;
         }
+    }
 
-        
+    protected override void OnStartRunning()
+    {
+
+        var canvas = Object.FindObjectOfType<Canvas>();
+        transform = canvas.GetComponent<RectTransform>();
 
 
     }
     protected override void OnUpdate()
     {
-        
-        Enabled = false;
+
+        interval += Time.deltaTime;
+        if(interval > 1F)
+        {
+            interval = 0F;
+            Scan();
+        }
     }
 }
