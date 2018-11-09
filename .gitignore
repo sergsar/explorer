@@ -4,3 +4,5 @@
 /**/.vs/
 /Unity3D/*.sln
 /Unity3D/*.csproj
+Unity3D/Build/
+Unity3D/obj/
