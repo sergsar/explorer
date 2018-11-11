@@ -8,7 +8,7 @@ using System.Linq;
 
 public class MainSystem : ComponentSystem
 {
-    private readonly string[] extensions = "BMP,EXR,GIF,HDR,IFF,JPG,JPEG,PICT,PNG,PSD,TGA,TIFF".Split(',');
+    
 
     private List<string> imageFileNamesSnapshot;
 
@@ -17,29 +17,19 @@ public class MainSystem : ComponentSystem
     private float interval;
 
     private string path = string.Format("{0}/StreamingAssets", Application.dataPath);
+    private string configPath = string.Format("{0}/StreamingAssets/config.yaml", Application.dataPath);
+
 
     private void Scan()
     {
+        var configReader = new YamlConfigReader(configPath);
+        var localPath = configReader.ReadPath() ?? path;
 
 
+        var directoryScanner = new DirectoryScanner(localPath);
+        var explorerItems = directoryScanner.Scan();
 
-        var directories = Directory.GetDirectories(path);
-
-        var imageFileNames = new List<string>();
-        foreach (var directory in directories)
-        {
-            var name = Path.GetFileName(directory);
-
-
-            var imageFile = Directory.GetFiles(directory).Where(p => extensions.Contains(Path.GetExtension(p).ToUpper().Replace(".", string.Empty))).FirstOrDefault();
-            if (imageFile == null)
-            {
-                Debug.Log(Path.GetExtension(Directory.GetFiles(directory).FirstOrDefault()));
-                continue;
-            }
-            imageFileNames.Add(imageFile);
-        }
-
+        var imageFileNames = explorerItems.Select(p => p.ImageFileName).ToList();
         if (imageFileNamesSnapshot != null && imageFileNames.SequenceEqual(imageFileNamesSnapshot))
         {
             return;
@@ -53,9 +43,9 @@ public class MainSystem : ComponentSystem
             Object.Destroy(obj.gameObject);
         }
 
-        foreach (var imageFileName in imageFileNames)
+        foreach (var explorerItem in explorerItems)
         {
-            var bytes = File.ReadAllBytes(imageFileName);
+            var bytes = File.ReadAllBytes(explorerItem.ImageFileName);
             var texture = new Texture2D(2, 2);
             texture.LoadImage(bytes);
             var rect = new Rect(0F, 0F, texture.width, texture.height);
@@ -66,6 +56,20 @@ public class MainSystem : ComponentSystem
             var image = new GameObject("Picture").AddComponent<Image>();
             image.transform.SetParent(panel);
             image.sprite = sprite;
+            image.preserveAspect = true;
+
+            var text = new GameObject("Name").AddComponent<Text>();
+            text.transform.SetParent(panel);
+            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            text.fontSize = 22;
+            text.color = Color.black;
+            text.text = explorerItem.Name;
+            text.alignment = TextAnchor.UpperCenter;
+            var textRectTransform = text.GetComponent<RectTransform>();
+            textRectTransform.anchorMin = new Vector2(0.1F, 0.1F);
+            textRectTransform.anchorMax = new Vector2(0.9F, 0.9F);
+            textRectTransform.anchoredPosition = Vector2.zero;
+            textRectTransform.sizeDelta = Vector2.zero;
         }
     }
 
