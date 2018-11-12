@@ -47,7 +47,11 @@ public class MainSystem : ComponentSystem
         {
             var bytes = File.ReadAllBytes(explorerItem.ImageFileName);
             var texture = new Texture2D(2, 2);
-            texture.LoadImage(bytes);
+            if(!texture.LoadImage(bytes))
+            {
+                Debug.LogErrorFormat("failed to load image file {0}", explorerItem.ImageFileName);
+                continue;
+            }
             var rect = new Rect(0F, 0F, texture.width, texture.height);
             var border = new Vector4(0F, 0F, texture.width, texture.height);
             var sprite = Sprite.Create(texture, rect, Vector3.zero, 100F, 0, SpriteMeshType.FullRect, border);
